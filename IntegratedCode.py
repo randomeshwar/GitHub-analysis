@@ -8,7 +8,10 @@ import csv
 import requests
 import urllib2
 import urlparse
+import time
 
+from datetime import date
+from datetime import datetime
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -22,10 +25,12 @@ from oauth2client.tools import argparser
 # Enter your Google Developer Project number
 PROJECT_NUMBER = '288816571005'
 PROJECT_ID = 'gitarchiveproj'
-FLOW = flow_from_clientsecrets('/Users/USEREN/Dropbox/HEC/Summer Project/GoogleAPIKeys/client_secrets.json',
+FLOW = flow_from_clientsecrets('/Users/medapa/Dropbox/HEC/Summer Project/GoogleAPIKeys/client_secrets.json',
                                scope='https://www.googleapis.com/auth/bigquery')
 NULL = 0
-REPOLIST_CSV = '/Users/USEREN/Dropbox/HEC/Summer Project/Data/RepoList2014.csv'
+REPOLIST_CSV = '/Users/medapa/Dropbox/HEC/Summer Project/Data/RepoList2014.csv'
+EVENTLIST_CSV = '/Users/medapa/Dropbox/HEC/Summer Project/Data/EventList2014.csv'
+
 
 def query_gitarchive(query_command):
 # Define a storage object which can be accessed by multiple processes or threads.
@@ -98,9 +103,7 @@ def get_repo(search_url):
                    
                 else:
                     r = requests.get(license_url, auth=('km-poonacha', 'rand276eshwar'))
-            #       print r.status_code
-            #       print r.headers['content-type']
-            #       print r.headers['X-RateLimit-Limit']
+
                     print r.headers['X-RateLimit-Remaining']
 #print items_values['id'], items_values['name'], items_values['created_at']
                     if r.status_code == 200 :
@@ -124,12 +127,12 @@ def get_repo(search_url):
                                             items_values['open_issues'],
                                             items_values['forks_count'],
                                             items_values['url'],
-                                            repo_licence])
+                                            repo_licence,
+                                            items_values['owner']['type']])
                 i=i+1
                 
     else : return 0
 
-  
   
         
 def main():
@@ -148,16 +151,21 @@ def main():
     repolist_data = csv.reader(repolist_read) 
   
     for row in repolist_data:        
+        curr_day_count = 0
+        prev_day_count = 0
         repo_name = row[1]
         repo_owner = row[2]
         print repo_name,repo_owner
 # Let the repodetails be the first line of the CSV       
-        with open('/Users/USEREN/Dropbox/HEC/Summer Project/Data/EventList2014.csv', 'ab' ) as csv_append:
+        with open(EVENTLIST_CSV, 'ab' ) as csv_append:
           event_append = csv.writer(csv_append)
           event_append.writerow(row) 
+          
+#Ensure there is some programming language associated with the projects
+          if row[3] == '' : continue
 
 # the query to be executed on BigQuery database   
-          query = "SELECT  actor, type, repository_created_at, repository_owner, repository_pushed_at, created_at FROM [githubarchive:year.2014] WHERE repository_owner = '"+repo_owner+"' AND repository_name = '"+repo_name+"' AND repository_created_at > '2014-01-01T00:00:00Z' AND (type = 'PushEvent' OR type = 'PullRequestEvent' OR type = 'PullEvent' OR type = 'CreateEvent' OR type = 'DownloadEvent') LIMIT 10000"
+          query = "SELECT  actor, type, repository_created_at, repository_owner, repository_pushed_at, created_at FROM [githubarchive:year.2014] WHERE repository_owner = '"+repo_owner+"' AND repository_name = '"+repo_name+"' AND repository_created_at > '2014-01-01' AND (type = 'PushEvent' OR type = 'PullRequestEvent' OR type = 'PullEvent' OR type = 'CreateEvent' OR type = 'DownloadEvent') ORDER BY repository_pushed_at LIMIT 10000"
           print query
           query_response = query_gitarchive(query)                
  
@@ -170,30 +178,56 @@ def main():
           total_rows = query_response['totalRows']   
           print ("Total rows from query =" + total_rows + ".")
           i = 0 
-      
+          event_count = 0
+         
+          if int(total_rows) == 0:
+            prev_day_count = 0
+          else:  
+            row_data = query_response['rows'][0]
+            first_push_time = datetime.strptime(row_data['f'][4]['v'], '%Y-%m-%d %H:%M:%S')
+            first_day_count = first_push_time.day + first_push_time.month * 30
+            prev_day_count = first_day_count
 # On successful query, the number of rows from the query is printed and the CSV is appended with the data    
 # with open('/Users/medapa/Dropbox/HEC/Summer Project/Data/EventList2014.csv', 'a') as csv_append:
           while i < (int(total_rows)) :
             row_data = query_response['rows'][i]
             j = 0
             event_data = ['']
+                        
 # J indicates the 6 fields of event data that is being captured
+            
             while j < 6:
-
               event_data.append(row_data['f'][j]['v'])
               j=j+1 
-           
+            
+            if i > 0:
+              
+              prev_row_data = query_response['rows'][i-1]
+              old_datetime = datetime.strptime(prev_row_data['f'][4]['v'], '%Y-%m-%d %H:%M:%S')
+              new_datetime = datetime.strptime(row_data['f'][4]['v'], '%Y-%m-%d %H:%M:%S')
+              time_delta = new_datetime - old_datetime
+              time_diff = time_delta.total_seconds() / 60
+             
+              if(time_diff < 60): 
+                  event_count = event_count
+                  curr_day_count = prev_day_count
+                    
+              else:    
+                  event_count = event_count + 1
+                  curr_date = datetime.strptime(row_data['f'][4]['v'], '%Y-%m-%d %H:%M:%S')
+                  curr_day_count = curr_date.day + curr_date.month*30 
+                    
+                
+            event_data.append(event_count)
+            event_data.append(curr_day_count - first_day_count)
             event_append.writerow(event_data) 
             i = i + 1                      
 # Calculate degree of superposition  
-          if total_rows == 0:
-            deg_super = 0
-            num_actors = 1
-            event_append.writerow('degree_super',deg_super,'no_actor',num_actors)
-                
-          else:
-            for  
-                           
+#          if total_rows == 0:
+#            deg_super = 0
+#           num_actors = 1
+#           event_append.writerow('degree_super',deg_super,'no_actor',num_actors)
+                       
 
 if __name__ == '__main__':
   main()
