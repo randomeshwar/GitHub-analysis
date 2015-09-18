@@ -1,12 +1,28 @@
+# Calculate degree of superposition, totl number of contributors, average nodal distance (avaerage time between repo pushes)
+# Calculate if pullrequest was accepted or rejected
 import csv
 
 NULL = 0
-REPOLIST_CSV = '/Users/medapa/Dropbox/HEC/Summer Project/Data/RepoList2014.csv'
+REPOLIST_CSV = '/Users/medapa/Dropbox/HEC/Summer Project/Data/DegSuper2014.csv'
 EVENTLIST_CSV = '/Users/medapa/Dropbox/HEC/Summer Project/Data/EventList2014.csv'
 
 
 def main()
 
-
+    with open(EVENTLIST_CSV, 'rb' ) as event_read:
+        event_analysis = csv.reader(event_read)
+        updated_row = []
+        
+        
+        for row in event_analysis:
+            if row[0] != '':
+               deg_super = 0
+               pull_count = 0
+               push_count = 0 
+            elif row[2] = 'PullRequestEvent':
+               pull_count = pull_count + 1 
+            elif row[2] = 'PushEvent':
+               push_count = push_count + 1  
+        
 if __name__ == '__main__':
   main()
