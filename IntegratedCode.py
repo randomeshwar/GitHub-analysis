@@ -131,18 +131,18 @@ def get_repo(search_url):
                                             items_values['owner']['type']])
                 i=i+1
                 
-    else : return 0
+    else : return NULL
 
   
         
 def main():
   
 # the search url for running the GitHub search and finding the relevant repos 
-  search_url = "https://api.github.com/search/repositories?q=created:2014-01-01..2015-01-01%20stars:%3E15000%20fork:false%20forks:%3E1%20&sort=stars&order=asc"
+  search_url = "https://api.github.com/search/repositories?q=created:2014-01-01..2015-01-01%20stars:%3E10000%20fork:false%20forks:%3E1%20&sort=stars&order=asc"
 # Search GitHUb and get the list of repos. The repos are filled into a CSV (RepoList2014.csv)
   return_code = get_repo(search_url)
 # If error in search return from main  
-  if return_code == 0:
+  if return_code == NULL:
       print "Error running the search and getting the repos. Returning from main()"
       return 
    
@@ -151,8 +151,10 @@ def main():
     repolist_data = csv.reader(repolist_read) 
   
     for row in repolist_data:        
-        curr_day_count = 0
-        prev_day_count = 0
+#        curr_day_count = 0
+#        prev_day_count = 0
+
+        time_diff = 0
         repo_name = row[1]
         repo_owner = row[2]
         print repo_name,repo_owner
@@ -164,6 +166,7 @@ def main():
 #Ensure there is some programming language associated with the projects
           if row[3] == '' : continue
 
+# Queries are executed only if a programming language is associated with the repo
 # the query to be executed on BigQuery database   
           query = "SELECT  actor, type, repository_created_at, repository_owner, repository_pushed_at, created_at FROM [githubarchive:year.2014] WHERE repository_owner = '"+repo_owner+"' AND repository_name = '"+repo_name+"' AND repository_created_at > '2014-01-01' AND (type = 'PushEvent' OR type = 'PullRequestEvent' OR type = 'PullEvent' OR type = 'CreateEvent' OR type = 'DownloadEvent') ORDER BY repository_pushed_at LIMIT 10000"
           print query
@@ -179,14 +182,7 @@ def main():
           print ("Total rows from query =" + total_rows + ".")
           i = 0 
           event_count = 0
-         
-          if int(total_rows) == 0:
-            prev_day_count = 0
-          else:  
-            row_data = query_response['rows'][0]
-            first_push_time = datetime.strptime(row_data['f'][4]['v'], '%Y-%m-%d %H:%M:%S')
-            first_day_count = first_push_time.day + first_push_time.month * 30
-            prev_day_count = first_day_count
+
 # On successful query, the number of rows from the query is printed and the CSV is appended with the data    
 # with open('/Users/medapa/Dropbox/HEC/Summer Project/Data/EventList2014.csv', 'a') as csv_append:
           while i < (int(total_rows)) :
@@ -199,7 +195,8 @@ def main():
             while j < 6:
               event_data.append(row_data['f'][j]['v'])
               j=j+1 
-            
+#Event count (A new repo stable version is when atleast 60 mins is passed between the creation of the old version and the new push)
+#WHAT VALUE SHOULD WE CHOOSE ???            
             if i > 0:
               
               prev_row_data = query_response['rows'][i-1]
@@ -210,16 +207,13 @@ def main():
              
               if(time_diff < 60): 
                   event_count = event_count
-                  curr_day_count = prev_day_count
                     
               else:    
                   event_count = event_count + 1
-                  curr_date = datetime.strptime(row_data['f'][4]['v'], '%Y-%m-%d %H:%M:%S')
-                  curr_day_count = curr_date.day + curr_date.month*30 
                     
                 
             event_data.append(event_count)
-            event_data.append(curr_day_count - first_day_count)
+            event_data.append(time_diff/60)
             event_append.writerow(event_data) 
             i = i + 1                      
 # Calculate degree of superposition  
