@@ -1,1 +1,12 @@
+import csv
 
+NULL = 0
+REPOLIST_CSV = '/Users/medapa/Dropbox/HEC/Summer Project/Data/RepoList2014.csv'
+EVENTLIST_CSV = '/Users/medapa/Dropbox/HEC/Summer Project/Data/EventList2014.csv'
+
+
+def main()
+
+
+if __name__ == '__main__':
+  main()
