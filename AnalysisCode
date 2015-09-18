@@ -1,5 +1,5 @@
 # Calculate degree of superposition, totl number of contributors, average nodal distance (avaerage time between repo pushes)
-# Calculate if pullrequest was accepted or rejected
+# Calculate if pullrequest was accepted or rejected this can be done by checking the merged time 
 import csv
 
 NULL = 0
