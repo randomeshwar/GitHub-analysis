@@ -7,4 +7,10 @@ Change #3 edited by randomeshwar
 Change #5 created by km-poonacha 
 Change #5 by randomeshwar ? trying not to merge
 
+<<<<<<< HEAD
 A new change from featue2
+=======
+Git changes on bash
+
+NEW change
+>>>>>>> 091d3754214f867d2ee0b2e7a94ee280e702461d
